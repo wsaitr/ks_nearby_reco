@@ -69,13 +69,13 @@ RUN source /opt/conda/etc/profile.d/conda.sh && \
         xgboost lightgbm catboost scikit-learn pandas numpy scipy
 
 # ---------- 5) TabPFN（含 PyTorch CPU 版） ----------
-# 先试清华镜像；失败回退到海外代理 + PyPI 国际源 + CPU 版 PyTorch
+# 先装 CPU 版 PyTorch，再装 TabPFN，避免 pip 拉到 CUDA 版 PyTorch
+# PyTorch CPU 走海外源需代理；tabpfn 走清华镜像
 RUN source /opt/conda/etc/profile.d/conda.sh && \
     conda activate gbdt && \
-    (pip install -i https://pypi.tuna.tsinghua.edu.cn/simple tabpfn || \
-     (export http_proxy=$HTTP_PROXY https_proxy=$HTTPS_PROXY && \
-      pip install torch --index-url https://download.pytorch.org/whl/cpu && \
-      pip install tabpfn))
+    export http_proxy=$HTTP_PROXY https_proxy=$HTTPS_PROXY && \
+    pip install torch --index-url https://download.pytorch.org/whl/cpu && \
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple tabpfn
 
 # ---------- 6) 运行期不设代理（如需访问海外可在容器内再 export） ----------
 ENV http_proxy="" https_proxy="" no_proxy=""
