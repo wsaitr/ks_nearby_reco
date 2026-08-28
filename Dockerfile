@@ -1,15 +1,16 @@
 # ==============================================================================
-# GBDT Benchmark 镜像 (KML 平台用)
+# GBDT Benchmark 镜像 (KML 平台用, CPU 版)
 #
 # 构建后包含：
 #   - Conda env: gbdt (Python 3.10)
 #   - XGBoost / LightGBM / CatBoost / scikit-learn / pandas / numpy
-#   - TabPFN (含 PyTorch 2.x，体积较大)
+#   - TabPFN (含 PyTorch 2.x CPU 版)
 #   - benchmark_gbdt.py（从 git 仓库 clone 到 /code）
 #
 # 代理策略：
 #   - 国内镜像（清华 pypi/anaconda、ubuntu 阿里云源）不走代理，直连更快
-#   - 海外资源（如 GitHub、PyPI 国际）走 KML 海外代理 oversea-squid4.sgp.txyun:11080
+#   - 海外资源（如 GitHub、PyPI 国际、PyTorch 下载）走 KML 海外代理
+#     oversea-squid4.sgp.txyun:11080
 #   - 按 KML 推荐：在需要代理的 RUN 里用 `export http_proxy=... https_proxy=...`
 #
 # 启动开发机后：
@@ -21,7 +22,7 @@
 #   ENABLE_TABPFN=1 TABPFN_API_KEY=xxx python benchmark_gbdt.py  # 启用 TabPFN
 # ==============================================================================
 
-FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
@@ -67,12 +68,13 @@ RUN source /opt/conda/etc/profile.d/conda.sh && \
     pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
         xgboost lightgbm catboost scikit-learn pandas numpy scipy
 
-# ---------- 5) TabPFN（含 PyTorch ~500MB，清华镜像） ----------
-# 若清华镜像没同步到某个包，回退到海外代理 + PyPI 国际源
+# ---------- 5) TabPFN（含 PyTorch CPU 版） ----------
+# 先试清华镜像；失败回退到海外代理 + PyPI 国际源 + CPU 版 PyTorch
 RUN source /opt/conda/etc/profile.d/conda.sh && \
     conda activate gbdt && \
     (pip install -i https://pypi.tuna.tsinghua.edu.cn/simple tabpfn || \
      (export http_proxy=$HTTP_PROXY https_proxy=$HTTPS_PROXY && \
+      pip install torch --index-url https://download.pytorch.org/whl/cpu && \
       pip install tabpfn))
 
 # ---------- 6) 运行期不设代理（如需访问海外可在容器内再 export） ----------
